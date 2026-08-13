@@ -1,0 +1,27 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv/
+env/
+venv/
+
+# IDE / System
+.vscode/
+.idea/
+.system_generated/
+.DS_Store
+.cache/
+
+# Project Data and Weights
+data/
+checkpoints/
+results/
+*.pth
+*.pt
+*.zip
