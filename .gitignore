@@ -17,6 +17,7 @@ venv/
 .system_generated/
 .DS_Store
 .cache/
+paper_review.md
 
 # Project Data and Weights
 data/

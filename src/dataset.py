@@ -26,7 +26,7 @@ class PlantDocDataset(Dataset):
 
         return image, label
 
-def get_dataloaders(data_dir, batch_size=32, num_workers=4, is_test=False, classes_dir=None):
+def get_dataloaders(data_dir, batch_size=32, num_workers=4, is_test=False, classes_dir=None, random_state=42):
     # Depending on how the dataset is structured, we assume it's organized as:
     # data_dir/class_name/image.jpg
     
@@ -58,11 +58,11 @@ def get_dataloaders(data_dir, batch_size=32, num_workers=4, is_test=False, class
 
     # Splits: 80% Train, 10% Val, 10% Test
     train_paths, temp_paths, train_labels, temp_labels = train_test_split(
-        all_image_paths, all_labels, test_size=0.2, stratify=all_labels, random_state=42
+        all_image_paths, all_labels, test_size=0.2, stratify=all_labels, random_state=random_state
     )
     
     val_paths, test_paths, val_labels, test_labels = train_test_split(
-        temp_paths, temp_labels, test_size=0.5, stratify=temp_labels, random_state=42
+        temp_paths, temp_labels, test_size=0.5, stratify=temp_labels, random_state=random_state
     )
 
     # Standard augmentations for train
