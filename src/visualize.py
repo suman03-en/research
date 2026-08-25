@@ -40,7 +40,7 @@ def plot_bubble_chart(csv_path="results/benchmark_metrics.csv", save_dir="result
         name = row["Model_Clean"]
         ax.scatter(
             row["CPU_Latency_ms"], row["Top1_Accuracy"],
-            s=row["Parameters_M"] * 60,  # Scale bubble size
+            s=row["Parameters_M"] * 40,  # Scale bubble size
             color=palette.get(name, "#999"),
             alpha=0.7, edgecolor="k", linewidth=1.0,
             zorder=3
@@ -72,10 +72,10 @@ def plot_bubble_chart(csv_path="results/benchmark_metrics.csv", save_dir="result
 
     # Add parameter count legend (manual bubble size legend)
     for param_val in [3, 10, 24]:
-        ax.scatter([], [], s=param_val * 60, c="gray", alpha=0.5, edgecolor="k",
+        ax.scatter([], [], s=param_val * 40, c="gray", alpha=0.5, edgecolor="k",
                    label=f"{param_val}M params")
-    ax.legend(title="Parameter Count", loc="lower right", fontsize=10, title_fontsize=11,
-              framealpha=0.9)
+    ax.legend(title="Parameter Count", loc="upper right", fontsize=9, title_fontsize=10,
+              framealpha=0.9, borderpad=1.0)
 
     plt.tight_layout()
     os.makedirs(save_dir, exist_ok=True)
@@ -87,7 +87,7 @@ def plot_bubble_chart(csv_path="results/benchmark_metrics.csv", save_dir="result
 
 
 def plot_metrics_comparison(csv_path="results/benchmark_metrics.csv", save_dir="results/plots"):
-    """Generate grouped bar chart comparing accuracy and Macro F1 across models."""
+    """Generate grouped bar chart comparing Top-1, Top-5 accuracy and Macro F1 across models."""
     if not os.path.exists(csv_path):
         print(f"File {csv_path} not found. Please run evaluate.py first.")
         return
@@ -98,39 +98,46 @@ def plot_metrics_comparison(csv_path="results/benchmark_metrics.csv", save_dir="
     # Prepare data for grouped bar chart
     models = df["Model_Clean"].tolist()
     accuracy = df["Top1_Accuracy"].tolist()
+    top5_accuracy = df["Top5_Accuracy"].tolist()
     macro_f1_pct = [f * 100 for f in df["Macro_F1"].tolist()]  # Scale to percentage
 
     x = np.arange(len(models))
-    width = 0.35
+    width = 0.25  # Narrower bars for 3 groups
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(11, 6))
 
-    bars1 = ax.bar(x - width/2, accuracy, width, label="Top-1 Accuracy (%)", 
+    bars1 = ax.bar(x - width, accuracy, width, label="Top-1 Accuracy (%)",
                    color="#2196F3", alpha=0.85, edgecolor="white", linewidth=0.5)
-    bars2 = ax.bar(x + width/2, macro_f1_pct, width, label="Macro F1 (×100)", 
+    bars2 = ax.bar(x, top5_accuracy, width, label="Top-5 Accuracy (%)",
+                   color="#4CAF50", alpha=0.85, edgecolor="white", linewidth=0.5)
+    bars3 = ax.bar(x + width, macro_f1_pct, width, label="Macro F1 (×100)",
                    color="#FF9800", alpha=0.85, edgecolor="white", linewidth=0.5)
 
     # Add value labels on bars
     for bar in bars1:
         height = bar.get_height()
         ax.text(bar.get_x() + bar.get_width()/2., height + 0.3,
-                f'{height:.1f}', ha='center', va='bottom', fontsize=10, fontweight='bold')
+                f'{height:.1f}', ha='center', va='bottom', fontsize=9, fontweight='bold')
     for bar in bars2:
         height = bar.get_height()
         ax.text(bar.get_x() + bar.get_width()/2., height + 0.3,
-                f'{height:.1f}', ha='center', va='bottom', fontsize=10, fontweight='bold')
+                f'{height:.1f}', ha='center', va='bottom', fontsize=9, fontweight='bold')
+    for bar in bars3:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height + 0.3,
+                f'{height:.1f}', ha='center', va='bottom', fontsize=9, fontweight='bold')
 
-    # Use broken y-axis starting from 55 to show differences clearly
-    ax.set_ylim(55, 75)
+    # Y-axis range to accommodate all three metrics
+    ax.set_ylim(55, 100)
     ax.yaxis.set_major_locator(ticker.MultipleLocator(5))
 
     ax.set_xlabel("Model", fontsize=13)
     ax.set_ylabel("Score (%)", fontsize=13)
-    ax.set_title("Top-1 Accuracy and Macro F1 Comparison", fontsize=16, fontweight="bold", pad=15)
+    ax.set_title("Top-1 Accuracy, Top-5 Accuracy, and Macro F1 Comparison", fontsize=15, fontweight="bold", pad=15)
     ax.set_xticks(x)
     ax.set_xticklabels(models, fontsize=11)
     ax.tick_params(labelsize=11)
-    ax.legend(fontsize=11, framealpha=0.9)
+    ax.legend(fontsize=10, framealpha=0.9, loc="upper right")
     ax.grid(axis='y', alpha=0.3)
 
     # Add break marks at bottom to indicate non-zero start
@@ -160,9 +167,14 @@ def plot_confusion_matrix(predictions_file, save_dir="results/plots"):
     y_pred = data['y_pred']
     class_names = data['class_names']
 
+    # Only include classes with actual ground truth test samples.
+    # Predictions into classes absent from the test set are excluded.
+    present_labels = sorted(np.unique(y_true))
+    present_names = [class_names[i] for i in present_labels]
+
     # Shorten class names for readability
     short_names = []
-    for name in class_names:
+    for name in present_names:
         # e.g., "Tomato_leaf_bacterial_spot" -> "Tom. Bact. Spot"
         short = name.replace("_leaf", "").replace("_", " ")
         if len(short) > 20:
@@ -170,7 +182,7 @@ def plot_confusion_matrix(predictions_file, save_dir="results/plots"):
             short = " ".join(p[:4] + "." if len(p) > 4 else p for p in parts)
         short_names.append(short)
 
-    cm = confusion_matrix(y_true, y_pred)
+    cm = confusion_matrix(y_true, y_pred, labels=present_labels)
 
     fig, ax = plt.subplots(figsize=(16, 14))
     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
@@ -178,7 +190,7 @@ def plot_confusion_matrix(predictions_file, save_dir="results/plots"):
                 ax=ax, cbar_kws={'label': 'Count'},
                 linewidths=0.5, linecolor='white')
 
-    ax.set_title("Confusion Matrix — FastViT-T8 on PlantDoc", fontsize=16, fontweight="bold", pad=15)
+    ax.set_title("Confusion Matrix \u2014 FastViT-T8 on PlantDoc", fontsize=16, fontweight="bold", pad=15)
     ax.set_xlabel("Predicted Class", fontsize=13)
     ax.set_ylabel("True Class", fontsize=13)
     plt.xticks(rotation=90, fontsize=8)

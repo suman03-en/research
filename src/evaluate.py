@@ -158,7 +158,7 @@ def evaluate(args):
         
         # Print classification report
         print("\nClassification Report:")
-        print(classification_report(y_true, y_pred, target_names=class_names, zero_division=0))
+        print(classification_report(y_true, y_pred, labels=list(range(num_classes)), target_names=class_names, zero_division=0))
         
         # Save predictions for confusion matrix generation
         preds_file = f"results/predictions_{args.model_name}.npz"
